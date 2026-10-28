@@ -1106,7 +1106,38 @@ function segs(arr,a,b,minCount,gap,minLen){
   if(start >= 0) out.push([start,last]);
   return out.filter(function(s){ return s[1]-s[0]+1 >= minLen; });
 }
+/* colour-based finder: the photos are dark or colourful, the certificate card behind them is a pale pastel */
+function detectTilesColor(img){
+  var w = 300, sc = w/img.naturalWidth, h = Math.round(img.naturalHeight*sc);
+  var c = document.createElement("canvas"); c.width = w; c.height = h;
+  var x = c.getContext("2d"); x.drawImage(img,0,0,w,h);
+  var d = x.getImageData(0,0,w,h).data, M = new Uint8Array(w*h), i, xx, yy;
+  for(i=0;i<w*h;i++){
+    var r = d[i*4], g = d[i*4+1], b = d[i*4+2], mx = Math.max(r,g,b), mn = Math.min(r,g,b), lum = .299*r+.587*g+.114*b;
+    M[i] = (lum < 205 || (mx-mn) > 75) ? 1 : 0;
+  }
+  var y0 = Math.floor(h*.2), y1 = Math.floor(h*.62), x0 = Math.floor(w*.03), x1 = Math.floor(w*.97), row = new Array(h).fill(0), col = new Array(w).fill(0);
+  for(yy=y0;yy<y1;yy++){ for(xx=x0;xx<x1;xx++){ if(M[yy*w+xx]) row[yy]++; } }
+  var rs = segs(row,y0,y1,Math.round((x1-x0)*.4),2,Math.round(h*.045));
+  if(!rs.length) return [];
+  var rsc = rs.map(function(sg){ var t = 0, n; for(n=sg[0];n<=sg[1];n++){ t += row[n]; } return t; }), rbest = Math.max.apply(null,rsc);
+  rs = [rs[rsc.indexOf(rbest)]];
+  for(yy=rs[0][0];yy<=rs[0][1];yy++){ for(xx=x0;xx<x1;xx++){ if(M[yy*w+xx]) col[xx]++; } }
+  var bandH = rs[0][1]-rs[0][0]+1;
+  var cs = segs(col,x0,x1,Math.round(bandH*.5),3,Math.round(w*.12));
+  if(cs.length < 2) return [];
+  var ws = cs.map(function(sg){ return sg[1]-sg[0]+1; }).sort(function(a,b){ return a-b; }), tw = ws[Math.floor(ws.length/2)];
+  if(ws[ws.length-1] > tw*1.25 || ws[0] < tw*.75) return [];
+  var th = bandH, tiles = [];
+  cs.forEach(function(sg){ var mx = (sg[0]+sg[1]+1)/2, my = (rs[0][0]+rs[0][1]+1)/2; tiles.push({ x:(mx-tw/2)/w, y:(my-th/2)/h, w:tw/w, h:th/h }); });
+  return tiles;
+}
 function detectTiles(img){
+  var t = [];
+  try{ t = detectTilesColor(img); }catch(_){ t = []; }
+  return t.length >= 2 ? t : detectTilesEdge(img);
+}
+function detectTilesEdge(img){
   var w = 300, sc = w/img.naturalWidth, h = Math.round(img.naturalHeight*sc);
   var c = document.createElement("canvas"); c.width = w; c.height = h;
   var x = c.getContext("2d"); x.drawImage(img,0,0,w,h);

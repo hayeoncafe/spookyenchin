@@ -1810,7 +1810,7 @@ function detectTiles(img){
       b.type = "button"; b.dataset.k = k; b.setAttribute("aria-pressed","false");
       im.src = SPR[k].thumb || SPR[k].flower; im.alt = ""; sp.textContent = TPL[k].label;
       b.appendChild(im); b.appendChild(sp); li.appendChild(b); ul.appendChild(li);
-      b.addEventListener("click",function(){ state.tpl = k; save("tpl",k); applyTheme(); redraw(); });
+      b.addEventListener("click",function(){ state.tpl = k; save("tpl",k); applyTheme(); say(""); redraw(); });
     });
   }
   function save(k,v){ try{ localStorage.setItem("spookyEnchin."+k,v); }catch(_){} }
@@ -1847,6 +1847,7 @@ function detectTiles(img){
   }
   function redraw(){
     var has = !!state.item && ready;
+    $("#fallback").hidden = true;   /* any change makes an earlier saved-image preview out of date, so clear it */
     $("#empty").hidden = has; $("#stage").hidden = !has; $("#fitHint").hidden = !has; $("#tools").hidden = !has; $("#dl").disabled = !has;
     $("#picked").hidden = !state.item; $("#drop").hidden = !!state.item;
     $("#prevSub").textContent = has ? "Looking good! Check it, then download." : "Your finished image shows up here.";

@@ -1121,8 +1121,16 @@ function detectTiles(img){
   var y0 = Math.floor(h*.25), y1 = Math.floor(h*.58), x0 = Math.floor(w*.08), x1 = Math.floor(w*.92), T = 12;
   var col = new Array(w).fill(0), row = new Array(h).fill(0);
   for(yy=y0;yy<y1;yy++){ for(xx=x0;xx<x1;xx++){ if(E[yy*w+xx] > T){ col[xx]++; row[yy]++; } } }
-  var cs = segs(col,x0,x1,Math.max(12,Math.round((y1-y0)*.09)),3,Math.round(w*.07)), rs = segs(row,y0,y1,Math.max(12,Math.round((x1-x0)*.09)),3,Math.round(h*.045));
-  if(!cs.length || !rs.length) return [];
+  var rs = segs(row,y0,y1,Math.max(12,Math.round((x1-x0)*.09)),3,Math.round(h*.045));
+  if(!rs.length) return [];
+  /* keep the strongest band(s) of rows: that's the photo strip, not the text lines under it */
+  var rsc = rs.map(function(sg){ var t = 0, n; for(n=sg[0];n<=sg[1];n++){ t += row[n]; } return t; }), rbest = Math.max.apply(null,rsc);
+  rs = rs.filter(function(sg,ix){ return rsc[ix] >= rbest*.5; });
+  col.fill(0);
+  rs.forEach(function(sg){ for(yy=sg[0];yy<=sg[1];yy++){ for(xx=x0;xx<x1;xx++){ if(E[yy*w+xx] > T) col[xx]++; } } });
+  var bandH = rs.reduce(function(a,sg){ return a+sg[1]-sg[0]+1; },0);
+  var cs = segs(col,x0,x1,Math.max(6,Math.round(bandH*.3)),3,Math.round(w*.07));
+  if(!cs.length) return [];
   var tw = Math.max.apply(null,cs.map(function(s){ return s[1]-s[0]+1; })), th = Math.max.apply(null,rs.map(function(s){ return s[1]-s[0]+1; }));
   var tiles = [], r, q;
   for(r=0;r<rs.length;r++){ for(q=0;q<cs.length;q++){
@@ -1140,7 +1148,17 @@ function detectTiles(img){
       var tiles = detectTiles(img);
       if(tiles.length < 2) return defaultCovers();
       var pad = .005, padY = pad*img.naturalWidth/img.naturalHeight;
-      return tiles.slice(1).map(function(q){
+      var sig = function(q){
+        var n = 20, c = document.createElement("canvas"); c.width = c.height = n; var cx = c.getContext("2d");
+        cx.drawImage(img,q.x*img.naturalWidth,q.y*img.naturalHeight,q.w*img.naturalWidth,q.h*img.naturalHeight,0,0,n,n);
+        var d = cx.getImageData(0,0,n,n).data, v = [], m = 0, sd = 0, i;
+        for(i=0;i<n*n;i++){ var g = .299*d[i*4]+.587*d[i*4+1]+.114*d[i*4+2]; v.push(g); m += g; }
+        m /= v.length; v.forEach(function(g){ sd += (g-m)*(g-m); }); sd = Math.sqrt(sd/v.length) || 1;
+        return v.map(function(g){ return (g-m)/sd; });
+      };
+      var s0 = sig(tiles[0]);
+      var same = function(q){ var s1 = sig(q), dsum = 0, i; for(i=0;i<s0.length;i++){ dsum += Math.abs(s0[i]-s1[i]); } return dsum/s0.length < .45; };
+      return tiles.slice(1).filter(function(q){ return !same(q); }).map(function(q){
         var x = Math.max(0,q.x-pad), y = Math.max(0,q.y-padY);
         return { x:x, y:y, w:Math.min(1-x,q.w+2*pad), h:Math.min(1-y,q.h+2*padY) };
       });

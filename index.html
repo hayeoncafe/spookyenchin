@@ -130,10 +130,8 @@ body{font-family:"Fredoka",system-ui,-apple-system,"Segoe UI",sans-serif; font-w
 body{background-color:var(--tbgB); background-image:var(--mama-body,none), radial-gradient(2px 2px at 12% 18%,#fff9,#0000 60%), radial-gradient(2px 2px at 78% 9%,#fff9,#0000 60%), radial-gradient(1.5px 1.5px at 35% 62%,#fff8,#0000 60%), radial-gradient(2px 2px at 90% 71%,#fff9,#0000 60%), radial-gradient(130% 70% at 50% 0%,var(--tbgA),var(--tbgB) 78%)}
 .wrap{padding:26px 20px 72px}
 
-/* scalloped ticket edge */
-.card,.hero{border:0; border-radius:26px; outline:3px dashed rgba(255,248,236,.75); outline-offset:-12px;
-  -webkit-mask:radial-gradient(circle 7px at 0 14px,#0000 98%,#000) left top/51% 28px repeat-y, radial-gradient(circle 7px at 100% 14px,#0000 98%,#000) right top/51% 28px repeat-y;
-  mask:radial-gradient(circle 7px at 0 14px,#0000 98%,#000) left top/51% 28px repeat-y, radial-gradient(circle 7px at 100% 14px,#0000 98%,#000) right top/51% 28px repeat-y}
+/* plain rounded cards (no scalloped edge) with the dashed stitching kept */
+.card,.hero{border:0; border-radius:26px; outline:3px dashed rgba(255,248,236,.75); outline-offset:-12px; -webkit-mask:none; mask:none}
 .card{background:linear-gradient(180deg,var(--tpaper),color-mix(in srgb,var(--tpaper) 88%,var(--tmain))); color:var(--tink); outline-color:color-mix(in srgb,var(--ttx) 60%,transparent); padding:28px 26px; box-shadow:none}
 .hero{background:var(--bunt) 0 0/224px 64px repeat-x, var(--mama-hero,none), linear-gradient(180deg,color-mix(in srgb,var(--tmain) 86%,#fff),color-mix(in srgb,var(--tmain) 84%,#000)); padding:74px 14px 26px; box-shadow:none}
 .hero p{font-family:"Chewy","Fredoka",cursive; color:#FFF8EC; text-shadow:2px 0 var(--tink),-2px 0 var(--tink),0 2px var(--tink),0 -2px var(--tink),2px 2px var(--tink),-2px -2px var(--tink),0 5px 0 var(--tink)}
@@ -1479,10 +1477,10 @@ function detectTiles(img){
   function ticketPath2(ctx){
     var x0 = TK.x0, x1 = TK.x1, top = TK.top, bot = TK.bot, step = 40, r = 14, i, yc, n = (x1-x0)/step;
     ctx.beginPath(); ctx.moveTo(x0,bot);
-    for(yc = bot-50; yc >= top+50; yc -= 44){ if(Math.abs(yc-TK.perf) < 58) continue; ctx.lineTo(x0,yc+10); ctx.arc(x0,yc,10,Math.PI/2,-Math.PI/2,true); }
+    for(yc = bot-50; yc >= top+50; yc -= 44){ if(Math.abs(yc-TK.perf) < 58 || (yc > 1530 && yc < 1590)) continue; ctx.lineTo(x0,yc+10); ctx.arc(x0,yc,10,Math.PI/2,-Math.PI/2,true); }
     ctx.lineTo(x0,top);
     for(i = 0; i < n; i++){ var sx = x0+step*i; ctx.lineTo(sx+step/2-r,top); ctx.arc(sx+step/2,top,r,Math.PI,0,true); ctx.lineTo(sx+step,top); }
-    for(yc = top+50; yc <= bot-50; yc += 44){ if(Math.abs(yc-TK.perf) < 58) continue; ctx.lineTo(x1,yc-10); ctx.arc(x1,yc,10,-Math.PI/2,Math.PI/2,true); }
+    for(yc = top+50; yc <= bot-50; yc += 44){ if(Math.abs(yc-TK.perf) < 58 || (yc > 1530 && yc < 1590)) continue; ctx.lineTo(x1,yc-10); ctx.arc(x1,yc,10,-Math.PI/2,Math.PI/2,true); }
     ctx.lineTo(x1,bot);
     for(i = n-1; i >= 0; i--){ var bx = x0+step*i; ctx.lineTo(bx+step/2+r,bot); ctx.arc(bx+step/2,bot,r,0,-Math.PI,true); ctx.lineTo(bx,bot); }
     ctx.closePath();
@@ -1576,7 +1574,7 @@ function detectTiles(img){
     }
     // vertical ticket text in the side margins
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.save(); ctx.translate(142,cy+10); ctx.rotate(-Math.PI/2); var ep = fit(ctx,"ENGENE PASS",TB,640,112); ctx.font = TB(ep); ctx.fillStyle = P.tx; ctx.fillText("ENGENE PASS",0,0); ctx.restore();
+    ctx.save(); ctx.translate(142,cy+40); ctx.rotate(-Math.PI/2); ctx.font = TB(50); ctx.fillStyle = mixc(P.tx,P.ink,.2); ctx.fillText("ENGENE TICKET PASS",0,0); ctx.restore();
     ctx.save(); ctx.translate(938,cy-40); ctx.rotate(Math.PI/2); ctx.font = TB(50); ctx.fillStyle = mixc(P.tx,P.ink,.2); ctx.fillText("NO. 2026-DAESANG",0,0); ctx.restore();
     // costume-coloured friends
     kawaiiBat(ctx,148,640,26,-.2,P.alt); kawaiiBat(ctx,934,610,22,.25,P.main);
@@ -1601,11 +1599,9 @@ function detectTiles(img){
   function drawTicketText(ctx,L,t){
     var W = L.W, cxm = W/2, i;
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    var l1 = "I VOTE FOR #ENHYPEN ON #2026MAMAVOTE", l2 = "JAY \u2022 JAKE \u2022 SUNGHOON \u2022 SUNOO \u2022 JUNGWON \u2022 NI-KI";
-    var px1 = fit(ctx,l1,TC,860,54), px2 = Math.min(fit(ctx,l2,TC,800,40),Math.round(px1*.8));
-    ctx.font = TC(px1); ctx.fillStyle = P.ink; ctx.fillText(l1,cxm,1512);
-    var y2 = 1512+Math.round(px1*.95); ctx.font = TC(px2); ctx.fillStyle = P.tx; ctx.fillText(l2,cxm,y2);
-    var hw = ctx.measureText(l2).width/2; ticketMotif(ctx,"star",cxm-hw-26,y2,10,P.accent,0); ticketMotif(ctx,"star",cxm+hw+26,y2,10,P.accent,0);
+    var l1 = "I VOTE FOR #ENHYPEN ON #2026MAMAVOTE";
+    var px1 = Math.min(50,fit(ctx,l1,TB,900,50));   /* 50px like the side text; only shrinks if the font fails to load */
+    ctx.font = TB(px1); ctx.fillStyle = P.ink; ctx.fillText(l1,cxm,1512);
     // perforation
     ctx.save(); ctx.setLineDash([10,10]); ctx.lineCap = "round"; ctx.lineWidth = 3.5; ctx.strokeStyle = rgba(P.ink,.7); ctx.beginPath(); ctx.moveTo(TK.x0+60,TK.perf-1); ctx.lineTo(TK.x1-60,TK.perf-1); ctx.stroke(); ctx.restore();
     // stub: group picture left, ENCHIN logo right
@@ -1622,7 +1618,9 @@ function detectTiles(img){
     if(!LITE){ drawMask(ctx,sk[0],208,1738,50,-.16); drawMask(ctx,sk[1],872,1738,50,.16); sparkle(ctx,290,1678,12,GOLD); sparkle(ctx,792,1796,11,GOLD); }
     var br = mulberry(88), bx = 390, bend = 690; ctx.fillStyle = CRM;
     while(bx < bend){ var bw = 1.5+br()*4.5; ctx.fillRect(bx,1800,bw,38); bx += bw+1.5+br()*3.5; }
-    ctx.font = TB(28); ctx.fillStyle = P.accent; ctx.textAlign = "right"; ctx.fillText("ENHYPEN",366,1819); ctx.textAlign = "left"; ctx.fillText("NO. 2026",714,1819);
+    var BN = { jakey:["SIM","JAEYUN"], noxstar:["PARK","JONGSEONG"], snowe:["PARK","SUNGHOON"], kishu:["KIM","SUNOO"], puni:["NISHIMURA","RIKI"], wonchu:["YANG","JUNGWON"] }[state.tpl] || ["ENHYPEN","NO. 2026"];
+    var bpx = Math.min(fit(ctx,BN[0],TB,104,28),fit(ctx,BN[1],TB,104,28));
+    ctx.font = TB(bpx); ctx.fillStyle = P.accent; ctx.textAlign = "right"; ctx.fillText(BN[0],366,1819); ctx.textAlign = "left"; ctx.fillText(BN[1],714,1819);
     ctx.textAlign = "center"; ctx.font = "600 20px \"Fredoka\", system-ui, sans-serif"; ctx.fillStyle = "rgba(255,248,236,.8)"; ctx.fillText("made by @jaykemate",cxm,1858);
   }
   function drawTicketNotches(ctx,bg){
@@ -1662,15 +1660,17 @@ function detectTiles(img){
   }
   var _draw = draw; draw = function(c,it){ var r = _draw(c,it); try{ festival(c); }catch(_){} return r; };
   /* SHORTER TICKET: cut the empty red band above the title (y 100-188) out of the finished picture */
-  var CUT_A = 100, CUT_B = 188;
+  var CUTS = [[100,188],[1536,1585]];   /* empty header band; gap left by the removed members line */
   var _drawFull = draw; draw = function(c,it){
-    var full = document.createElement("canvas"), Lr = _drawFull(full,it), W = full.width, H = full.height, dh = CUT_B - CUT_A;
+    var full = document.createElement("canvas"), Lr = _drawFull(full,it), W = full.width, H = full.height, dh = 0, i;
+    CUTS.forEach(function(k){ dh += k[1]-k[0]; });
     try{
       c.width = W; c.height = H - dh;
       var x = c.getContext("2d"); x.clearRect(0,0,W,H-dh);
-      x.drawImage(full,0,0,W,CUT_A,0,0,W,CUT_A);
-      x.drawImage(full,0,CUT_B,W,H-CUT_B,0,CUT_A,W,H-CUT_B);
-      Lr.H = H - dh; Lr.cy -= dh; if(Lr.capY) Lr.capY -= dh; if(Lr.markY) Lr.markY -= dh; if(Lr.perfY) Lr.perfY -= dh;
+      var sy = 0, dy = 0;
+      CUTS.concat([[H,H]]).forEach(function(k){ var h = k[0]-sy; if(h > 0) x.drawImage(full,0,sy,W,h,0,dy,W,h); dy += h; sy = k[1]; });
+      var d1 = CUTS[0][1]-CUTS[0][0];
+      Lr.H = H - dh; Lr.cy -= d1; if(Lr.capY) Lr.capY -= d1; if(Lr.markY) Lr.markY -= d1; if(Lr.perfY) Lr.perfY -= d1;
     }catch(_){   /* if cropping ever fails, hand back the full-height ticket instead */
       c.width = W; c.height = H; c.getContext("2d").drawImage(full,0,0);
     }

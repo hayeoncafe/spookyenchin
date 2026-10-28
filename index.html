@@ -24,7 +24,7 @@ body{
   font-family:"Fredoka",system-ui,sans-serif; font-size:18px; line-height:1.5;
   background-color:var(--page);
   background-image:var(--mama-body,none), linear-gradient(180deg,var(--page),var(--page2));
-  background-attachment:fixed; transition:background-color .25s;
+  background-attachment:scroll; transition:background-color .25s;
 }
 @supports (-webkit-touch-callout:none){ body{background-attachment:scroll} }
 @supports (min-height:100dvh){ body{min-height:100dvh} }
@@ -132,8 +132,8 @@ body{background-color:var(--tbgB); background-image:var(--mama-body,none), radia
 
 /* plain rounded cards (no scalloped edge) with the dashed stitching kept */
 .card,.hero{border:0; border-radius:26px; outline:3px dashed rgba(255,248,236,.75); outline-offset:-12px; -webkit-mask:none; mask:none}
-.card{background:linear-gradient(180deg,var(--tpaper),color-mix(in srgb,var(--tpaper) 88%,var(--tmain))); color:var(--tink); outline-color:color-mix(in srgb,var(--ttx) 60%,transparent); padding:28px 26px; box-shadow:none}
-.hero{background:var(--bunt) 0 0/224px 64px repeat-x, var(--mama-hero,none), linear-gradient(180deg,color-mix(in srgb,var(--tmain) 86%,#fff),color-mix(in srgb,var(--tmain) 84%,#000)); padding:74px 14px 26px; box-shadow:none}
+.card{background:var(--tpaper); background:linear-gradient(180deg,var(--tpaper),color-mix(in srgb,var(--tpaper) 88%,var(--tmain))); color:var(--tink); outline-color:rgba(194,31,58,.6); outline-color:color-mix(in srgb,var(--ttx) 60%,transparent); padding:28px 26px; box-shadow:none}
+.hero{background:var(--tmain); background:var(--bunt) 0 0/224px 64px repeat-x, var(--mama-hero,none), linear-gradient(180deg,color-mix(in srgb,var(--tmain) 86%,#fff),color-mix(in srgb,var(--tmain) 84%,#000)); padding:74px 14px 26px; box-shadow:none}
 .hero p{font-family:"Chewy","Fredoka",cursive; color:#FFF8EC; text-shadow:2px 0 var(--tink),-2px 0 var(--tink),0 2px var(--tink),0 -2px var(--tink),2px 2px var(--tink),-2px -2px var(--tink),0 5px 0 var(--tink)}
 .card h2{font-family:var(--fh); font-size:30px; letter-spacing:.05em; color:var(--ttx); text-shadow:2px 2px 0 var(--tsh,var(--tacc))}
 .card .sub,.help,.status{color:color-mix(in srgb,var(--tink) 78%,var(--tpaper))}
@@ -1659,7 +1659,7 @@ function detectTilesEdge(img){
       var lw = 240, lh = IMG.logo ? IMG.logo.height*lw/IMG.logo.width : 0; if(lh > gH){ lw *= gH/lh; lh = gH; }
       var tot = lw+34+gi.w, sc = Math.min(1,780/tot); lw *= sc; lh *= sc; var gw = gi.w*sc, gh = gi.h*sc, lx = (W-(lw+34*sc+gw))/2;
       if(IMG.group) ctx.drawImage(IMG.group,lx,rowY,gw,gh);
-      if(IMG.logo){ var lxx = lx+gw+34*sc, ly = rowY+(gh-lh)/2; ctx.drawImage(tintAny(IMG.logo,P.main),lxx+4,ly+5,lw,lh); ctx.drawImage(tintAny(IMG.logo,CRM),lxx,ly,lw,lh); }
+      if(IMG.logo){ var lxx = lx+gw+34*sc, ly = rowY+(gh-lh)/2; ctx.drawImage(tinted("grplogo",IMG.logo,P.main),lxx+4,ly+5,lw,lh); ctx.drawImage(tinted("grplogo",IMG.logo,CRM),lxx,ly,lw,lh); }
     }
    
     // barcode
@@ -1678,13 +1678,19 @@ function detectTilesEdge(img){
       ctx.beginPath(); ctx.arc(n[0],TK.perf,36,n[1],n[2]); ctx.lineWidth = 9; ctx.strokeStyle = P.ink; ctx.stroke();
     });
   }
+  var BGC = {}, SCR = null;   /* BGC: one cached background (kept to a single template so phones don't run out of memory); SCR: reusable scratch canvas for the live preview */
+  function resetCtx(ctx){ ctx.setTransform(1,0,0,1,0,0); ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over"; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0; ctx.shadowColor = "rgba(0,0,0,0)"; ctx.setLineDash([]); }
   function draw(canvas,it){
     var t = TPL[state.tpl], L = layoutFor(it);
     P = COST[state.tpl] || COST.jakey;
-    canvas.width = L.W; canvas.height = L.H;
+    if(canvas.width !== L.W) canvas.width = L.W; if(canvas.height !== L.H) canvas.height = L.H;
     var ctx = canvas.getContext("2d");
+    resetCtx(ctx);
     ctx.clearRect(0,0,L.W,L.H);
-    var bg = document.createElement("canvas"); bg.width = L.W; bg.height = L.H; drawNight(bg.getContext("2d"),L,t); ctx.drawImage(bg,0,0);
+    var bgKey = state.tpl + "|" + L.W + "x" + L.H, bg;
+    if(BGC.key === bgKey && BGC.cv && BGC.cv.width === L.W){ bg = BGC.cv; }
+    else { bg = document.createElement("canvas"); bg.width = L.W; bg.height = L.H; drawNight(bg.getContext("2d"),L,t); BGC = { key:bgKey, cv:bg }; }
+    ctx.drawImage(bg,0,0);
     drawTicketBody(ctx,L,t,it);
     drawTicketProps(ctx,L,t);
     var c = it.code;
@@ -1692,7 +1698,6 @@ function detectTilesEdge(img){
     drawUserCover(ctx,L.cx+c.x*L.cw,L.cy+c.y*L.ch,c.w*L.cw,c.h*L.ch,t);
     drawTicketText(ctx,L,t);
     drawTicketNotches(ctx,bg);
-    try{ bg.width = bg.height = 0; }catch(_){}   /* free the scratch canvas so phones don't run out of memory after a few templates */
     return L;
   }
   /* ticket-style stitched border baked into the saved image */
@@ -1711,11 +1716,11 @@ function detectTilesEdge(img){
   /* SHORTER TICKET: cut the empty red band above the title (y 100-188) out of the finished picture */
   var CUTS = [[100,188],[1536,1585]];   /* empty header band; gap left by the removed members line */
   var _drawFull = draw; draw = function(c,it){
-    var full = document.createElement("canvas"), Lr = _drawFull(full,it), W = full.width, H = full.height, dh = 0, i;
+    var full = (c === cv) ? (SCR || (SCR = document.createElement("canvas"))) : document.createElement("canvas"), Lr = _drawFull(full,it), W = full.width, H = full.height, dh = 0, i;
     CUTS.forEach(function(k){ dh += k[1]-k[0]; });
     try{
-      c.width = W; c.height = H - dh;
-      var x = c.getContext("2d"); x.clearRect(0,0,W,H-dh);
+      if(c.width !== W) c.width = W; if(c.height !== H - dh) c.height = H - dh;
+      var x = c.getContext("2d"); resetCtx(x); x.clearRect(0,0,W,H-dh);
       var sy = 0, dy = 0;
       CUTS.concat([[H,H]]).forEach(function(k){ var h = k[0]-sy; if(h > 0) x.drawImage(full,0,sy,W,h,0,dy,W,h); dy += h; sy = k[1]; });
       var d1 = CUTS[0][1]-CUTS[0][0];
@@ -1723,7 +1728,7 @@ function detectTilesEdge(img){
     }catch(_){   /* if cropping ever fails, hand back the full-height ticket instead */
       c.width = W; c.height = H; c.getContext("2d").drawImage(full,0,0);
     }
-    try{ full.width = full.height = 0; }catch(_){}
+    if(full !== SCR){ try{ full.width = full.height = 0; }catch(_){} }
     return Lr;
   };
   function buntingURL(C){ if(BC[C.main]) return BC[C.main]; return (BC[C.main] = buntingRaw(C)); }
@@ -1857,9 +1862,9 @@ function detectTilesEdge(img){
     return out;
   }
   function drawGuides(){
-    ov.width = cv.width; ov.height = cv.height;
+    if(ov.width !== cv.width) ov.width = cv.width; if(ov.height !== cv.height) ov.height = cv.height;
+    var ctx = ov.getContext("2d"); ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,ov.width,ov.height);
     if(!state.item) return;
-    var ctx = ov.getContext("2d");
     boxList().forEach(function(e){
       var b = px(e.ref);
       ctx.save();
@@ -2001,17 +2006,18 @@ function detectTilesEdge(img){
     if(state.item){ state.item = null; }
     $("#fallback").hidden = true; say(""); redraw();
   });
-  $("#user").addEventListener("input",function(e){ state.user = e.target.value.replace(/^@+/,""); save("user",state.user); schedule(); });
+  var userT = 0;
+  $("#user").addEventListener("input",function(e){ state.user = e.target.value.replace(/^@+/,""); save("user",state.user); clearTimeout(userT); userT = setTimeout(schedule,120); });
 
   /* ---------- download ---------- */
   /* never let a missing/odd download capability break the page */
   var dlP = Promise.resolve().then(function(){
     return (window.claude && typeof window.claude.use === "function") ? window.claude.use("downloads") : null;
   }).then(function(d){ return (d && typeof d.save === "function") ? d : null; }).catch(function(){ return null; });
-  function showFallback(c,msg){
+  function showFallback(c,msg,blob){
     var box = $("#fallback"); box.innerHTML = ""; box.hidden = false;
     var p = document.createElement("p"); p.textContent = msg || "Press and hold (or right-click) the image below to save it.";
-    var im = document.createElement("img"); im.alt = "Your finished voting proof"; im.src = c.toDataURL("image/png");
+    var im = document.createElement("img"); im.alt = "Your finished voting proof"; im.src = (blob && window.URL && URL.createObjectURL) ? URL.createObjectURL(blob) : c.toDataURL("image/png");
     box.appendChild(p); box.appendChild(im);
     if(box.scrollIntoView) box.scrollIntoView({ behavior:"smooth", block:"nearest" });
   }
@@ -2034,11 +2040,11 @@ function detectTilesEdge(img){
     if(!c){ say("Couldn't build the image (" + ((lastErr && lastErr.message) || lastErr) + "). Try Start over and add the screenshot again."); return; }
     var name = "spooky-enchin-" + state.tpl + "-vote.png", done = "Saved! Make sure the certificate number is fully covered before you post.";
     var finish = function(blob){
-      if(!blob){ showFallback(c); say("Made your image. Press and hold it to save."); return; }
+      if(!blob){ showFallback(c,null,blob); say("Made your image. Press and hold it to save."); return; }
       dlP.then(function(d){
         if(d){
           return d.save({ filename:name, data:blob }).then(function(){ $("#fallback").hidden = true; say(done); })
-            .catch(function(err){ if(err && err.code === "declined"){ say("Download cancelled."); return; } showFallback(c); });
+            .catch(function(err){ if(err && err.code === "declined"){ say("Download cancelled."); return; } showFallback(c,null,blob); });
         }
         var ios = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
         if(ios && navigator.share && navigator.canShare){
@@ -2046,18 +2052,20 @@ function detectTilesEdge(img){
           if(file && navigator.canShare({ files:[file] })){
             return navigator.share({ files:[file] }).then(function(){ say("Pick Save Image to keep it. " + done); })
               .catch(function(err){
-                if(err && err.name === "AbortError"){ say("Share cancelled. Tap Download again, or press and hold the image."); showFallback(c); return; }
-                showFallback(c); say(done);
+                if(err && err.name === "AbortError"){ say("Share cancelled. Tap Download again, or press and hold the image."); showFallback(c,null,blob); return; }
+                showFallback(c,null,blob); say(done);
               });
           }
         }
         /* no host download API: try a normal download and also show the image to press-and-hold */
-        anchorSave(blob,name); showFallback(c,"If your download didn't start, press and hold (or right-click) the image to save it."); say(done);
+        var inApp = /FBAN|FBAV|FB_IAB|Instagram|TikTok|musical_ly|Snapchat|Twitter|Discord|Line\/|KAKAOTALK|NAVER|MicroMessenger|; wv\)/i.test(navigator.userAgent);
+        if(inApp){ showFallback(c,"This in-app browser blocks downloads. Press and hold the image to save it, or open this page in Chrome or Safari.",blob); say("Your image is ready below."); return; }
+        anchorSave(blob,name); showFallback(c,"If your download didn't start, press and hold (or right-click) the image to save it.",blob); say(done);
       });
     };
     var gotBlob = false, once = function(bl){ if(gotBlob) return; gotBlob = true; finish(bl); };
     try{ c.toBlob(once,"image/png"); }catch(_){ once(null); }
-    setTimeout(function(){ if(!gotBlob){ try{ var u = c.toDataURL("image/png").split(",")[1], bin = atob(u), arr = new Uint8Array(bin.length); for(var i=0;i<bin.length;i++) arr[i] = bin.charCodeAt(i); once(new Blob([arr],{type:"image/png"})); }catch(_){ once(null); } } },4000);
+    setTimeout(function(){ if(!gotBlob){ try{ var u = c.toDataURL("image/png").split(",")[1], bin = atob(u), arr = new Uint8Array(bin.length); for(var i=0;i<bin.length;i++) arr[i] = bin.charCodeAt(i); once(new Blob([arr],{type:"image/png"})); }catch(_){ once(null); } } },12000);
     setTimeout(function(){ try{ c.width = c.height = 0; }catch(_){} },30000);   /* release the export canvas once saving is done */
   });
 

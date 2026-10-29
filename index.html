@@ -6,7 +6,25 @@
 <title>SPOOKY ENCHIN MAMA 2026 VOTE</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Chewy&family=Creepster&family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>(function(){var l=document.createElement("link");l.rel="stylesheet";l.href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Chewy&family=Creepster&family=Fredoka:wght@400;500;600;700&display=swap";document.head.appendChild(l);})();</script>
+<noscript><link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Chewy&family=Creepster&family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
+<script>
+(function(){
+  var shown = false;
+  function show(){
+    if(shown || window.__boot) return; shown = true;
+    var d = document.createElement("div"); d.id = "bootBanner"; d.setAttribute("role","alert");
+    d.style.cssText = "position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:99999;background:#1b0f1f;color:#fff;border:2px solid #ff9d3c;border-radius:16px;padding:14px 16px;font:600 16px/1.35 system-ui,-apple-system,Segoe UI,sans-serif;text-align:center;box-shadow:0 6px 24px rgba(0,0,0,.5)";
+    d.innerHTML = '<div style="margin-bottom:10px">Taking longer than usual\u2026<br><span style="font-weight:400;font-size:14px;opacity:.85">Slow connection or an older browser? Tap Reload, or open this page in the latest Chrome, Safari, Edge or Firefox.</span></div>';
+    var b = document.createElement("button"); b.textContent = "Reload";
+    b.style.cssText = "font:700 16px system-ui,sans-serif;padding:10px 22px;border:0;border-radius:999px;background:#ff9d3c;color:#2a1330;cursor:pointer";
+    b.onclick = function(){ location.reload(); }; d.appendChild(b);
+    (document.body || document.documentElement).appendChild(d);
+  }
+  setTimeout(show, 12000);
+  window.addEventListener("error", function(){ if(!window.__boot) setTimeout(show, 1500); });
+})();
+</script>
 <style>
 :root{
   --page:#2A0F2A; --page2:#4A1630; --vivid:#7A1F3F; --vtext:#FF6B4A; --accent:#FF6B4A; --edge:#FF6B4A; --ink:#0B0820;
@@ -98,6 +116,9 @@ body{
 .empty{border:3px dashed var(--line); border-radius:20px; padding:40px 18px; text-align:center; color:var(--muted)}
 .empty strong{display:block; font-family:"Fredoka",system-ui,sans-serif; font-weight:800; font-size:20px; color:var(--text)}
 .help{margin:10px 2px 0; font-size:14px; color:var(--muted)}
+.status.busy::before{content:""; display:inline-block; width:13px; height:13px; margin-right:8px; border:2px solid currentColor; border-right-color:transparent; border-radius:50%; vertical-align:-2px; animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){ .status.busy::before{animation-duration:2.4s} }
 .status{min-height:1.3em; margin:8px 2px 12px; font-size:14px; color:var(--muted)}
 .fallback{display:grid; gap:10px; margin-top:12px}
 .fallback img{width:100%; height:auto; border-radius:14px}
@@ -154,6 +175,7 @@ body{background-color:var(--tbgB); background-image:var(--mama-body,none), radia
 </style>
 </head>
 <body>
+<noscript><p style="margin:0;padding:16px;background:#1b0f1f;color:#fff;font:600 16px system-ui,sans-serif;text-align:center">This page needs JavaScript turned on to make your voting image.</p></noscript>
 
 <div class="wrap">
   <header class="hero" id="hero">
@@ -1891,7 +1913,7 @@ function detectTilesEdge(img){
     L = draw(cv,state.item); drawGuides();
   }
   function schedule(){ if(raf) return; raf = requestAnimationFrame(function(){ raf = 0; redraw(); }); }
-  function say(m){ $("#status").textContent = m || ""; }
+  function say(m){ var st = $("#status"); st.textContent = m || ""; st.classList.toggle("busy", /\u2026$/.test(m || "")); }
 
   /* ---------- drag / resize / remove ---------- */
   function pt(e){ var r = ov.getBoundingClientRect(); return { x:(e.clientX-r.left)*ov.width/r.width, y:(e.clientY-r.top)*ov.height/r.height }; }
@@ -1972,7 +1994,7 @@ function detectTilesEdge(img){
         };
         im.src = fr.result;
       };
-      fr.readAsDataURL(f);
+      setTimeout(function(){ fr.readAsDataURL(f); },40);
     });
   }
   function takeFile(f){
@@ -2029,8 +2051,13 @@ function detectTilesEdge(img){
       return true;
     }catch(_){ return false; }
   }
+  var lastDl = 0;
   $("#dl").addEventListener("click",function(){
     if(!state.item) return;
+    var now = Date.now(); if(now - lastDl < 1500) return; lastDl = now;
+    say("Making your image\u2026"); setTimeout(buildAndSave,60);
+  });
+  function buildAndSave(){
     var c = null, lastErr = null, tiers = [[false,false],[true,false],[true,true]];
     for(var ti=0; ti<tiers.length && !c; ti++){
       LITE = tiers[ti][0]; SAFE = tiers[ti][1];
@@ -2067,7 +2094,7 @@ function detectTilesEdge(img){
     try{ c.toBlob(once,"image/png"); }catch(_){ once(null); }
     setTimeout(function(){ if(!gotBlob){ try{ var u = c.toDataURL("image/png").split(",")[1], bin = atob(u), arr = new Uint8Array(bin.length); for(var i=0;i<bin.length;i++) arr[i] = bin.charCodeAt(i); once(new Blob([arr],{type:"image/png"})); }catch(_){ once(null); } } },12000);
     setTimeout(function(){ try{ c.width = c.height = 0; }catch(_){} },30000);   /* release the export canvas once saving is done */
-  });
+  }
 
   /* ---------- boot ---------- */
   buildMenu();
@@ -2076,8 +2103,9 @@ function detectTilesEdge(img){
   var u0 = recall("user"); if(u0){ state.user = u0; $("#user").value = u0; }
   say("Getting your Enchin ready…");
   var fonts = document.fonts && document.fonts.load ? Promise.all([document.fonts.load("40px \"Chewy\""), document.fonts.load("40px \"Creepster\""), document.fonts.load("40px \"Bebas Neue\""), document.fonts.load("600 20px \"Fredoka\""), document.fonts.load("500 20px \"Fredoka\"")]).catch(function(){}) : Promise.resolve();
-  var bootDone = function(){ if(ready) return; ready = true; say(""); try{ warm(); }catch(_){} try{ applyTheme(); redraw(); }catch(e){ console.error(e); } };
+  var bootDone = function(){ if(ready) return; ready = true; window.__boot = true; var bb = document.getElementById("bootBanner"); if(bb && bb.parentNode) bb.parentNode.removeChild(bb); say(""); try{ warm(); }catch(_){} try{ applyTheme(); redraw(); }catch(e){ console.error(e); } };
   var withTimeout = function(p,ms){ return Promise.race([p, new Promise(function(r){ setTimeout(r,ms); })]); };
+  if(document.fonts && document.fonts.addEventListener) document.fonts.addEventListener("loadingdone",function(){ if(ready) schedule(); });
   withTimeout(Promise.all([loadAll(), withTimeout(fonts,2500)]),8000).then(bootDone, bootDone);
   applyTheme();
 })();
